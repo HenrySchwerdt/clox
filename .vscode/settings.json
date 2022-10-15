@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "common.h": "c",
-        "stddef.h": "c",
-        "chunk.h": "c"
-    }
-}
