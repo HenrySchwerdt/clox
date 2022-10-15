@@ -10,7 +10,7 @@ void initChunk(Chunk* chunk) {
     initValueArray(&chunk->constants);
 }
 
-void  writeChunk(Chunk* chunk, uint8_t byte, int line) {
+void writeChunk(Chunk* chunk, uint8_t byte, int line) {
     // if chunk full free memory
     if (chunk->capacity < chunk->count + 1) {
         int oldCapacity = chunk->capacity;
@@ -35,3 +35,22 @@ int addConstant(Chunk* chunk, Value value) {
     writeValueArray(&chunk->constants, value);
     return chunk->constants.count - 1;
 }
+
+void writeConstant(Chunk* chunk, Value value, int line) {
+    int index = addConstant(chunk, value);
+    if (index > UINT8_MAX) {
+        u_int8_t largeConstant[4];
+        for (int i = 0; i < 4; i++) {
+            largeConstant[i] = index >> ((3-i) * 8);
+        }
+        writeChunk(chunk, OP_CONSTANT_LONG, line);
+        for (int i = 0; i < 4; i++) {
+            writeChunk(chunk, largeConstant[i], line);
+        }
+    } else {
+        writeChunk(chunk, OP_CONSTANT, line);
+        writeChunk(chunk, index, line);
+    }
+}
+
+

@@ -7,9 +7,10 @@
 int main(int argc, const char * argv[]) {
     Chunk chunk;
     initChunk(&chunk);
-    int constant = addConstant(&chunk, 1.2);
-    writeChunk(&chunk, OP_CONSTANT, 123);
-    writeChunk(&chunk, constant, 123);
+    for (int i = 0; i< 260; i++) {
+        writeConstant(&chunk, 0.0 + i, i);
+    }
+    
     writeChunk(&chunk, OP_RETURN, 124);
     writeChunk(&chunk, OP_RETURN, 124);
     writeChunk(&chunk, OP_RETURN, 125);
