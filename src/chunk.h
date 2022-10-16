@@ -2,12 +2,18 @@
 #define clox_chunk_h
 
 #include "common.h"
+#include "utils.h"
 #include "value.h"
 #include "line_tracker.h"
+
+#define CONSTANT_LONG_BYTE_SIZE 4
+
+
 
 typedef enum {
     OP_CONSTANT_LONG,
     OP_CONSTANT,
+    OP_NEGATE,
     OP_RETURN,
 } OpCode;
 
@@ -18,6 +24,7 @@ typedef struct {
     LineArray lines;
     ValueArray constants;
 } Chunk;
+
 
 void initChunk(Chunk* chunk);
 void freeChunk(Chunk* chunk);

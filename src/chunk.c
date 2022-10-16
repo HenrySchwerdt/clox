@@ -36,15 +36,15 @@ int addConstant(Chunk* chunk, Value value) {
     return chunk->constants.count - 1;
 }
 
+
 void writeConstant(Chunk* chunk, Value value, int line) {
     int index = addConstant(chunk, value);
     if (index > UINT8_MAX) {
-        u_int8_t largeConstant[4];
-        for (int i = 0; i < 4; i++) {
-            largeConstant[i] = index >> ((3-i) * 8);
-        }
+        uint8_t largeConstant[CONSTANT_LONG_BYTE_SIZE];
+        CONVERT_TO_BYTE_ARRAY(largeConstant, CONSTANT_LONG_BYTE_SIZE, index);
         writeChunk(chunk, OP_CONSTANT_LONG, line);
-        for (int i = 0; i < 4; i++) {
+
+        for (int i = 0; i < CONSTANT_LONG_BYTE_SIZE; i++) {
             writeChunk(chunk, largeConstant[i], line);
         }
     } else {
