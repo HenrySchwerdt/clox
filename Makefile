@@ -1,2 +1,24 @@
-main:
-	cc src/main.c src/chunk.c src/memory.c  src/value.c src/line_tracker.c src/vm.c src/utils.c src/debug.c src/scanner.c src/compiler.c -o build/clox
+BINARY=build
+CODEDIRS=./src
+INCDIRS=. ./include
+
+CC=gcc
+OPT=-O0
+DEPFLAGS=-MP -MD
+CFLAGS=-Wall -Wextra -g $(foreach D,$(INCDIRS),-I$(D)) $(OPT) $(DEPFLAGS)
+
+CFILES=$(foreach D,$(CODEDIRS), $(wildcard $(D)/*.c))
+
+OBJECTS=$(patsubst %.c,%.o,$(CFILES))
+DEPFILES=$(patsubst %.c,%.d,$(CFILES))
+
+all: $(BINARY)
+
+$(BINARY): $(OBJECTS)
+	$(CC) -o $@ $^
+
+%.o:%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+clean:
+	rm -rf $(BINARY) $(OBJECTS) $(DEPFILES)

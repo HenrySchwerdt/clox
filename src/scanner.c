@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "common.h"
-#include "scanner.h"
+#include "../include/common.h"
+#include "../include/scanner.h"
 
 typedef struct {
     const char* start;
@@ -106,7 +106,13 @@ static TokenType identifierType() {
     switch (scanner.start[0])
     {
         case 'a': return checkKeyword(1, 2, "nd", TOKEN_AND);
-        case 'c': return checkKeyword(1, 4, "lass", TOKEN_CLASS);
+        case 'c': 
+            if (scanner.current - scanner.start > 1) {
+                switch(scanner.start[1]) {
+                    case 'l': return checkKeyword(2, 3, "ass", TOKEN_CLASS);
+                }
+            }
+            break;
         case 'e': return checkKeyword(1, 3, "lse", TOKEN_FALSE);
         case 'i': return checkKeyword(1, 1, "f", TOKEN_IF);
         case 'n': return checkKeyword(1, 2, "il", TOKEN_NIL);
@@ -117,7 +123,6 @@ static TokenType identifierType() {
             if (scanner.current - scanner.start > 1) {
                 switch(scanner.start[1]) {
                     case 'u': return checkKeyword(2, 3, "per", TOKEN_SUPER);
-                    case 't': return checkKeyword(2, 4, "atic", TOKEN_STATIC);
                 }
             }
             break;
@@ -185,8 +190,9 @@ Token scanToken() {
 
     char c = advance();
     if (isAlpha(c)) return identifier();
-    if (isDigit(c)) return number();
-
+    if (isDigit(c)) {
+        return number();
+    }
     switch (c)
     {
         case '(': return makeToken(TOKEN_LEFT_PAREN);
@@ -194,8 +200,6 @@ Token scanToken() {
         case '{': return makeToken(TOKEN_LEFT_BRACE);
         case '}': return makeToken(TOKEN_RIGHT_BRACE);
         case ';': return makeToken(TOKEN_SEMICOLON);
-        case ':': return makeToken(TOKEN_COLON);
-        case '?': return makeToken(TOKEN_QUESTION_MARK);
         case ',': return makeToken(TOKEN_COMMA);
         case '.': return makeToken(TOKEN_DOT);
         case '-': return makeToken(TOKEN_MINUS);

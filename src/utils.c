@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "utils.h"
+#include "../include/utils.h"
 
 void toByteArray(uint8_t * splitNumber, uint8_t bytes, int index) {
     for (int i = 0; i < bytes; i++) {

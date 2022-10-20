@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "memory.h"
-#include "line_tracker.h"
+#include "../include/memory.h"
+#include "../include/line_tracker.h"
 
 void initLineArray(LineArray* array) {
     array->values = NULL;

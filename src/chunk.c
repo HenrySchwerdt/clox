@@ -1,6 +1,6 @@
 #include <stdlib.h>
-#include "chunk.h"
-#include "memory.h"
+#include "../include/chunk.h"
+#include "../include/memory.h"
 
 void initChunk(Chunk* chunk) {
     chunk->count = 0;
@@ -37,8 +37,11 @@ int addConstant(Chunk* chunk, Value value) {
 }
 
 
-void writeConstant(Chunk* chunk, Value value, int line) {
+bool writeConstant(Chunk* chunk, Value value, int line) {
     int index = addConstant(chunk, value);
+    if (index > UINT32_MAX) {
+        return false;
+    }
     if (index > UINT8_MAX) {
         uint8_t largeConstant[CONSTANT_LONG_BYTE_SIZE];
         CONVERT_TO_BYTE_ARRAY(largeConstant, CONSTANT_LONG_BYTE_SIZE, index);
@@ -51,6 +54,7 @@ void writeConstant(Chunk* chunk, Value value, int line) {
         writeChunk(chunk, OP_CONSTANT, line);
         writeChunk(chunk, index, line);
     }
+    return true;
 }
 
 

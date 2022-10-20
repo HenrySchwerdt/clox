@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "common.h"
-#include "vm.h"
+#include "../include/common.h"
+#include "../include/vm.h"
 
 
 static void repl() {
@@ -11,6 +11,7 @@ static void repl() {
         printf("> ");
 
         if(!fgets(line, sizeof(line), stdin)) {
+            printf("Bla");
             printf("\n");
             break;
         }
