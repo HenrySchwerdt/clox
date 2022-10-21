@@ -1,6 +1,7 @@
 BINARY=build
 CODEDIRS=./src
-INCDIRS=. ./include
+INCDIRS=./include
+OBJECTDIR= ./obj
 
 CC=gcc
 OPT=-O0
