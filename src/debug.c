@@ -19,7 +19,10 @@ static int simpleInstruction(const char * name, int offset) {
 
 static int constantInstruction(const char* name, int type, Chunk* chunk, int offset) {
     int constant = 0;
-    if (type == OP_CONSTANT_LONG || type == OP_DEFINE_GLOBAL_LONG || type == OP_GET_GLOBAL_LONG) {
+    if (type == OP_CONSTANT_LONG || 
+        type == OP_DEFINE_GLOBAL_LONG || 
+        type == OP_GET_GLOBAL_LONG || 
+        type == OP_SET_GLOBAL_LONG) {
         for(int i = 1; i <= 4; i++) {
             constant |= chunk->code[offset+i] << ((4 - i) * 8);
         }
@@ -47,13 +50,17 @@ int disassembleInstruction(Chunk* chunk, int offset) {
         case OP_CONSTANT:
             return constantInstruction("OP_CONSTANT", OP_CONSTANT, chunk, offset);
         case OP_DEFINE_GLOBAL:
-            return constantInstruction("OP_DEFINE_GLOBAL", OP_CONSTANT, chunk, offset);
+            return constantInstruction("OP_DEFINE_GLOBAL", OP_DEFINE_GLOBAL, chunk, offset);
         case OP_DEFINE_GLOBAL_LONG:
-            return constantInstruction("OP_DEFINE_GLOBAL_LONG", OP_CONSTANT, chunk, offset);
+            return constantInstruction("OP_DEFINE_GLOBAL_LONG", OP_DEFINE_GLOBAL_LONG, chunk, offset);
         case OP_GET_GLOBAL:
-            return constantInstruction("OP_GET_GLOBAL", OP_CONSTANT, chunk, offset);
+            return constantInstruction("OP_GET_GLOBAL", OP_GET_GLOBAL, chunk, offset);
         case OP_GET_GLOBAL_LONG:
-            return constantInstruction("OP_GET_GLOBAL_LONG", OP_CONSTANT, chunk, offset);
+            return constantInstruction("OP_GET_GLOBAL_LONG", OP_GET_GLOBAL_LONG, chunk, offset);
+        case OP_SET_GLOBAL:
+            return constantInstruction("OP_SET_GLOBAL", OP_SET_GLOBAL, chunk, offset);
+        case OP_SET_GLOBAL_LONG:
+            return constantInstruction("OP_SET_GLOBAL_LONG", OP_SET_GLOBAL_LONG, chunk, offset);
 		case OP_NIL:
 			return simpleInstruction("OP_NIL", offset);
 		case OP_TRUE:

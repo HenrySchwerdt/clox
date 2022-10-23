@@ -164,6 +164,27 @@ static InterpretResult run() {
 				pop();
                 break;
 			}
+			case OP_SET_GLOBAL: {
+				ObjString* name = READ_STRING();
+				if (tableSet(&vm.globals, name, peek(0))) {
+					tableDelete(&vm.globals, name);
+					runtimeError("Undefined variable '%s'.", name->chars);
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				break;
+			}
+			case OP_SET_GLOBAL_LONG: {
+				uint8_t byteArray[CONSTANT_LONG_BYTE_SIZE];
+                for (int i = 0; i < CONSTANT_LONG_BYTE_SIZE; i++)
+                    byteArray[i] = READ_BYTE();
+				ObjString* name = READ_STRING_LONG(byteArray);
+				if (tableSet(&vm.globals, name, peek(0))) {
+					tableDelete(&vm.globals, name);
+					runtimeError("Undefined variable '%s'.", name->chars);
+					return INTERPRET_RUNTIME_ERROR;
+				}
+				break;
+			}
 			case OP_EQUAL: {
 				Value b = pop();
 				Value a = pop();
