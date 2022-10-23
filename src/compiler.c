@@ -417,5 +417,5 @@ bool compile(const char* source, Chunk* chunk) {
         declaration();
     }
     endCompiler();
-    return 1;
+    return !parser.hadError;
 }
