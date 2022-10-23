@@ -38,7 +38,7 @@ int addConstant(Chunk* chunk, Value value) {
 
 
 bool writeConstant(Chunk* chunk, Value value, int line) {
-    int index = addConstant(chunk, value);
+    uint32_t index = (uint32_t) addConstant(chunk, value);
     if (index > UINT32_MAX) {
         return false;
     }
