@@ -5,16 +5,20 @@
 #include "../include/scanner.h"
 
 typedef struct {
+    char* fileStart;
     const char* start;
     const char* current;
+    int charCount;
     int line;
 } Scanner;
 
 Scanner scanner;
 
 void initScanner(const char* source) {
+    scanner.fileStart = source;
     scanner.start = source;
     scanner.current = source;
+    scanner.charCount = 0;
     scanner.line = 1;
 }
 
@@ -39,6 +43,7 @@ static Token makeToken(TokenType type) {
     token.start = scanner.start;
     token.length = (int) (scanner.current - scanner.start);
     token.line = scanner.line;
+    token.charPosition = scanner.charCount;
     return token;
 }
 
@@ -64,6 +69,7 @@ static char peekNext() {
 
 static char advance() {
     scanner.current++;
+    scanner.charCount++;
     return *(scanner.current-1);
 }
 
@@ -80,6 +86,7 @@ static void skipWhitespace() {
             case '\n':
                 scanner.line++;
                 advance();
+                scanner.charCount = 0;
                 break;
             case '/':
                 if(peekNext() == '/') {
@@ -215,4 +222,19 @@ Token scanToken() {
     }
 
     return errorToken("Unexpected character");
+}
+
+char* getSourceLine(int * length, int line) {
+    char* start = scanner.fileStart;
+    for (int i = 1; i < line; i++) {
+        while(*(start) != '\n' && *(start) != '\0') {
+            start+=1;
+        }
+        start +=1;
+    }
+
+    int size = 0;
+    for (;*(start + size) != '\n'&&*(start + size) != '\0'; size++);
+    *length = size;
+    return start;
 }
