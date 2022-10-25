@@ -1,10 +1,8 @@
-{
-    val PI = 3.141;
-    if (PI < 3) {
-         print "Kleiner 3";
-    } else {
-        print "Test";
-    }
-        
-    
+val MAX = 10;
+
+var i = 0;
+
+while(i <= MAX) {
+    print i;
+    i = i + 1;
 }
