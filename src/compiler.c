@@ -13,6 +13,8 @@
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
+#define MAG "\e[0;35m"
+#define CYN "\e[0;36m"
 
 typedef struct {
     Token current;
@@ -47,6 +49,7 @@ typedef struct {
 typedef struct {
     Token name;
     int depth;
+    bool final;
 } Local;
 
 typedef struct {
@@ -66,6 +69,7 @@ static Chunk* currentChunk() {
     return compilingChunk;
 }
 
+// TODO needs refactoring
 static void errorAt(Token* token, const char* message) {
 
     if (parser.panicMode) return;
@@ -73,7 +77,7 @@ static void errorAt(Token* token, const char* message) {
     int lineNr = token->charPosition < parser.previous.charPosition ? token->line-1: token->line;
     int length = 0;
     char* line = getSourceLine(&length, lineNr);
-    int charPos = token->charPosition < parser.previous.charPosition ? 4 + length : token->charPosition;
+    int charPos = token->charPosition == 1 ||token->charPosition < parser.previous.charPosition ? 4 + length : token->charPosition;
     parser.panicMode = true;
     fprintf(stderr, "%s[line %d:%d] Error", ANSI_COLOR_RED, lineNr, charPos);
     if (token->type == TOKEN_EOF) {
@@ -82,8 +86,14 @@ static void errorAt(Token* token, const char* message) {
     } else {
         fprintf(stderr, " at '%.*s'", token->length, token->start);
     }
-    fprintf(stderr, ": %s\n", message);
-    fprintf(stderr,"\t%-4d| %.*s\n",lineNr, length, line);
+    fprintf(stderr, ": %s\n%s", message, ANSI_COLOR_RESET);
+    // print line before 
+    if (lineNr > 1) {
+        int beforeLength = 0;
+        char * beforeLine = getSourceLine(&beforeLength, lineNr - 1);
+        fprintf(stderr,"%s\t%-4d|%s %.*s\n%s",CYN, lineNr -1, ANSI_COLOR_RESET, beforeLength, beforeLine, CYN);
+    }
+    fprintf(stderr,"\t%-4d|%s %.*s\n %s",lineNr, ANSI_COLOR_RESET, length, line, MAG);
     fprintf(stderr, "\t");
     
     for (int i = 0;i <= charPos; i++) {
@@ -143,6 +153,12 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
 	emitByte(byte2);
 }
 
+static int emitJump(uint8_t instruction) {
+    emitByte(instruction);
+    emitByte(0xff);
+    emitByte(0xff);
+    return currentChunk()->count - 2;
+}
 
 static void emitReturn() {
     emitByte(OP_RETURN);
@@ -154,6 +170,15 @@ static int emitConstant(Value value) {
         error("Too many constants in one chunk");
     }
     return index;
+}
+
+static void patchJump(int offset) {
+    int jump = currentChunk()->count - offset - 2;
+    if (jump > UINT16_MAX) {
+        error("Too much code to jump over.");
+    }
+    currentChunk()->code[offset] = (jump >> 8) & 0xff;
+    currentChunk()->code[offset + 1] = jump & 0xff;
 }
 
 static void initCompiler(Compiler* compiler) {
@@ -215,17 +240,18 @@ static int resolveLocal(Compiler* compiler, Token* name) {
     return -1;
 }
 
-static void addLocal(Token name) {
+static void addLocal(Token name, bool isFinal) {
     if (current->localCount == UINT8_COUNT) {
         error("Too many local variables in function.");
     }
     Local* local = &current->locals[current->localCount++];
     local->name = name;
     local->depth = -1;
+    local->final = isFinal;
     local->depth = current->scopeDepth;
 }
 
-static void declareVariable() {
+static void declareVariable(bool isFinal) {
 
     if (current->scopeDepth == 0) return;
     Token* name = &parser.previous;
@@ -238,12 +264,13 @@ static void declareVariable() {
             error("Already variable with this name in this scope");
         }
     }
-    addLocal(*name);
+    addLocal(*name, isFinal);
 }
 
 static uint32_t parseVariable(const char* errorMessage) {
+    bool isFinal = parser.previous.type == TOKEN_VAL;
     consume(TOKEN_IDENTIFIER, errorMessage);
-    declareVariable();
+    declareVariable(isFinal);
     if (current->scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
 }
@@ -284,7 +311,6 @@ static void string(bool canAssign) {
 static void namedVariable(Token name, bool canAssign) {
     uint8_t getOp, setOp;
     int arg = resolveLocal(current, &name);
-
     if (arg != -1) {
         getOp = arg <= UINT8_MAX ? OP_GET_LOCAL : OP_GET_LOCAL_LONG;
         setOp = arg <= UINT8_MAX ? OP_SET_LOCAL : OP_SET_LOCAL_LONG;
@@ -298,6 +324,10 @@ static void namedVariable(Token name, bool canAssign) {
         uint8_t largeConstant[CONSTANT_LONG_BYTE_SIZE];
         CONVERT_TO_BYTE_ARRAY(largeConstant, CONSTANT_LONG_BYTE_SIZE, arg);
         if (match(TOKEN_EQUAL) && canAssign) {
+            Local* local = &current->locals[arg];
+            if (local->final) {
+                error("Can't reassign final variable");
+            }
             expression();
             emitByte(setOp);
         } else {
@@ -309,6 +339,10 @@ static void namedVariable(Token name, bool canAssign) {
         }
     } else {
         if (match(TOKEN_EQUAL) && canAssign) {
+            Local* local = &current->locals[arg];
+            if (local->final) {
+                error("Can't reassign final variable");
+            }
             expression();
             emitBytes(setOp, arg);
         } else {
@@ -419,6 +453,7 @@ ParseRule rules[] = {
     [TOKEN_THIS]= {NULL,NULL,PREC_NONE},
     [TOKEN_TRUE]= {literal,NULL,PREC_NONE},
     [TOKEN_VAR]= {NULL,NULL,PREC_NONE},
+    [TOKEN_VAL]= {NULL,NULL,PREC_NONE},
     [TOKEN_WHILE]= {NULL,NULL,PREC_NONE},
     [TOKEN_ERROR]= {NULL,NULL,PREC_NONE},
     [TOKEN_EOF]= {NULL,NULL,PREC_NONE},
@@ -487,6 +522,20 @@ static void printStatement() {
     emitByte(OP_PRINT);
 }
 
+static void ifStatement() {
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+    int thenJump = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+    declaration();
+    int elseJump = emitJump(OP_JUMP);
+    patchJump(thenJump);
+    emitByte(OP_POP);
+    if (match(TOKEN_ELSE)) declaration();
+    patchJump(elseJump);
+}
+
 static void synchronize() {
     parser.panicMode = false;
     while(parser.current.type != TOKEN_EOF) {
@@ -496,6 +545,7 @@ static void synchronize() {
             case TOKEN_CLASS:
             case TOKEN_FUN:
             case TOKEN_VAR:
+            case TOKEN_VAL:
             case TOKEN_FOR:
             case TOKEN_IF:
             case TOKEN_WHILE:
@@ -512,7 +562,7 @@ static void synchronize() {
 }
 
 static void declaration() {
-    if (match(TOKEN_VAR)) {
+    if (match(TOKEN_VAR) || match(TOKEN_VAL)) {
         varDeclaration();
     } else if (match(TOKEN_LEFT_BRACE)) {
         beginScope();
@@ -527,6 +577,8 @@ static void declaration() {
 static void statement() {
     if (match(TOKEN_PRINT)) {
         printStatement();
+    } else if (match(TOKEN_IF)) {
+        ifStatement();
     } else {
         expressionStatement();
     }

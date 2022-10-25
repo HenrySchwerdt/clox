@@ -1,3 +1,10 @@
-var x
- var z = 1;var test = 2
- 
+{
+    val PI = 3.141;
+    if (PI < 3) {
+         print "Kleiner 3";
+    } else {
+        print "Test";
+    }
+        
+    
+}
